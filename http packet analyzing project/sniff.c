@@ -121,7 +121,7 @@ void process_packet(u_char *args, const struct pcap_pkthdr *header, const u_char
 			++others;
 			break;
 	}
-	printf("TCP : %d   UDP : %d   ICMP : %d   IGMP : %d   Others : %d   Total : %d\r", tcp , udp , icmp , igmp , others , total);
+	//printf("TCP : %d   UDP : %d   ICMP : %d   IGMP : %d   Others : %d   Total : %d\r", tcp , udp , icmp , igmp , others , total);
 }
 
 void print_ethernet_header(const u_char *Buffer, int Size)
@@ -212,9 +212,13 @@ void print_tcp_packet(const u_char * Buffer, int Size)
 		
 	// fprintf(logfile , "Data Payload\n");	
 	//PrintData(Buffer + header_size , Size - header_size );
+	// printf("first\n");
 	log_http_request(Buffer + header_size , Size - header_size );
+	// printf("second\n");
 	log_http_response(Buffer + header_size , Size - header_size );
-	fprintf(logfile , "\n###########################################################");
+	// printf("third\n");
+
+	//fprintf(logfile , "\n###########################################################");
 }
 
 void print_udp_packet(const u_char *Buffer , int Size)
@@ -387,22 +391,42 @@ void PrintData (const u_char * data , int Size)
 }
 
 void log_http_request(const u_char *data, int size){
+	char dataCopy[size +10];
+	strcpy(dataCopy, data);
 	if(size<20)
 		return;
-	char *token = strtok(data, " ");
+	char *token = strtok(dataCopy, " ");
 	if(token==NULL)
 		return;
 	if(strcmp(token, "GET")==0 || strcmp(token, "PUT")==0 || strcmp(token, "POST")==0 || strcmp(token, "DELETE")==0){
-		token = strtok(NULL, " ");
-		token = strtok(NULL, " ");
+		char string[size+100];
+		int counter =  strlen("\n\n\n\n\n\n       http request logging\n\n");
+		strcpy(string,"\n\n\n\n\n\n       http request logging\n\n" );
+		strcat(string, token);
+		strcat(string, " ");
+		strcat(string, strtok(NULL, " "));
+		strcat(string, " ");
+		token = strtok(NULL, "\0");
+		strcat(string, token);
 		if(token==NULL || strlen(token)<5)
 			return;
-		if(*token=='H' && *(token+1)=='T' && *(token+1)=='T' && *(token+1)=='T'){
-			
+		if(*token=='H' && *(token+1)=='T' && *(token+2)=='T' && *(token+3)=='P'){
+			printf("request begin\n");
+			printf(" %s \n", string);
+			printf("request end\n\n\n");
+
+			// for(int i=0 ; i<size-1 ; i++ ){
+			// 	// printf("%c", data[i]);
+			// 	string[counter]= data[i];
+			// 	counter++;
+			// 	if(i < size-4)
+			// 	if(data[i]==13 && data[i+1]==10 && data[i+2]==13 && data[i+3]==10)
+			// 		break;
+			// }
+			// printf("string1 \n %s \n string", string);
 		}
-		
 	}
-	
+	// printf("fun end");
 }
 
 void log_http_response(const u_char * data, int size){
@@ -411,13 +435,25 @@ void log_http_response(const u_char * data, int size){
 	char *token = strtok(data, " ");
 	if(token==NULL || strlen(token)<5)
 		return;
-	if(*token=='H' && *(token+1)=='T' && *(token+1)=='T' && *(token+1)=='T'){
-		printf("\n\n\n\n\n\n       http response logging\n\n");
-		for(int i=0 ; i<size-1 ; i++ ){
-			printf("%c", data[i]);
+	if(*token=='H' && *(token+1)=='T' && *(token+2)=='T' && *(token+3)=='P'){
+		char string[size+100];
+		strcpy(string,"\n\n\n\n\n\n       http response logging\n\n" );
+		strcat(string, token);
+		strcat(string, " ");
+		int counter = strlen(string);
+		data = strtok(NULL, "\0");
+		strcat(string, token);
+		// printf("here %s here", token);
+		// printf("%s", string);
+		for(int i=0 ; i<strlen(data) ; i++ ){
+			// printf("%c", data[i]);
+			string[counter++]=data[i];
 			if(i < size-4)
 			if(data[i]==13 && data[i+1]==10 && data[i+2]==13 && data[i+3]==10)
 				break;
 		}
+		string[counter]='\0';
+		syslog(LOG_INFO, "%s", string);
+		printf("%s", string);
 	}
 }
